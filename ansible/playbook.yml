@@ -1,0 +1,79 @@
+---
+- hosts: aws-nexus
+  become: true
+  tasks:
+    - name: Wait 300 seconds for server to boot up
+      wait_for_connection:
+        delay: 1
+        timeout: 300
+
+    - name: Update apt repo and cache on all Debian/Ubuntu boxes
+      apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
+
+    - name: Upgrade all packages on servers
+      apt: upgrade=dist force_apt_get=yes
+
+    - name: Install openjdk 8 packages
+      apt:
+        pkg:
+          - openjdk-8-jdk
+        state: latest
+        update_cache: true
+
+    - name: Adding 'nexus' group
+      group:
+        name: nexus
+        state: present
+    
+    - name: Adding 'nexus' user
+      user:
+        name: nexus
+        comment: nexus access only
+        group: nexus
+        createhome: yes
+        home: /home/nexus
+
+    - name: Download nexus files
+      get_url:
+        url: https://download.sonatype.com/nexus/3/nexus-3.42.0-01-unix.tar.gz
+        dest: /tmp/nexus.tar.gz
+
+    - name: Extract nexus
+      shell: "tar xzf nexus.tar.gz"
+      args:
+        chdir: /tmp
+
+    - name: Remove old directories
+      shell: rm -rf /tmp/nexus /opt/nexus /opt/sonatype-work
+
+    - name: "Rename nexus folder"
+      shell: "mv nexus-3.42.0-01 nexus"
+      args:
+        chdir: /tmp
+
+    - name: Copy nexus
+      shell: "cp -r nexus/ sonatype-work/ /opt "
+      args:
+        chdir: /tmp
+
+    - name: Change user group of nexus
+      file:
+        path: /opt/nexus
+        state: directory
+        recurse: yes
+        owner: nexus
+        group: nexus
+
+    - name: Change user group of sonatype-work
+      file:
+        path: /opt/sonatype-work
+        state: directory
+        recurse: yes
+        owner: nexus
+        group: nexus
+
+    - name: Add user for nexus in nexus.rc file
+      lineinfile:
+        path: /opt/nexus/bin/nexus.rc
+        regexp: '^#run_as_user='
+        line: 'run_as_user="nexus"'
