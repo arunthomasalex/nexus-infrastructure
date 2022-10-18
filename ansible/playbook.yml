@@ -1,6 +1,9 @@
 ---
 - hosts: aws-nexus
   become: true
+  vars:
+    user: nexus
+    group: nexus
   tasks:
     - name: Wait 300 seconds for server to boot up
       wait_for_connection:
@@ -20,18 +23,18 @@
         state: latest
         update_cache: true
 
-    - name: Adding 'nexus' group
+    - name: Adding '{{ group }}' group
       group:
-        name: nexus
+        name: "{{ group }}"
         state: present
     
-    - name: Adding 'nexus' user
+    - name: Adding '{{ user }}' user
       user:
-        name: nexus
-        comment: nexus access only
-        group: nexus
+        name: "{{ user }}"
+        comment: "{{ user }} access only"
+        group: "{{ group }}"
         createhome: yes
-        home: /home/nexus
+        home: "/home/{{ user }}"
 
     - name: Download nexus files
       get_url:
@@ -56,24 +59,59 @@
       args:
         chdir: /tmp
 
-    - name: Change user group of nexus
+    - name: Change user group of nexus folder
       file:
         path: /opt/nexus
         state: directory
         recurse: yes
-        owner: nexus
-        group: nexus
+        owner: "{{ user }}"
+        group: "{{ group }}"
 
-    - name: Change user group of sonatype-work
+    - name: Change user group of sonatype-work folder
       file:
         path: /opt/sonatype-work
         state: directory
         recurse: yes
-        owner: nexus
-        group: nexus
+        owner: "{{ user }}"
+        group: "{{ group }}"
 
     - name: Add user for nexus in nexus.rc file
-      lineinfile:
-        path: /opt/nexus/bin/nexus.rc
-        regexp: '^#run_as_user='
-        line: 'run_as_user="nexus"'
+      copy:
+        content: 'run_as_user="{{ user }}"'
+        dest: /opt/nexus/bin/nexus.rc
+
+    - name: Change java heap size
+      replace:
+        path: /opt/nexus/bin/nexus.vmoptions
+        regexp: '2703m'
+        replace: '512m'
+
+    - name: Copy content to create nexus service
+      copy:
+        content: |
+          [Unit]
+          Description=nexus service
+          After=network.target
+
+          [Service]
+          Type=forking
+          LimitNOFILE=65536
+          User={{ user }}
+          Group={{ group }}
+          ExecStart=/opt/nexus/bin/nexus start
+          ExecStop=/opt/nexus/bin/nexus stop
+          User=nexus
+          Restart=on-abort
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/nexus.service
+
+    - name: Enable service nexus and ensure it is not masked
+      systemd:
+        name: nexus
+        enabled: yes
+
+    - name: Run a user service for nexus
+      systemd:
+        name: nexus
+        state: started
