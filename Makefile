@@ -1,7 +1,7 @@
 include .env
 export
 
-instance_id=$(shell cd terraform && terraform output --json nexus-id)
+-instance_id=$(shell cd terraform && terraform output --json nexus-id)
 
 DELAY=10
 
