@@ -20,6 +20,7 @@
       apt:
         pkg:
           - openjdk-8-jdk
+          - nginx
         state: latest
         update_cache: true
 
@@ -111,6 +112,20 @@
         name: nexus
         enabled: yes
 
+    - name: Copying nginx conf
+      copy:
+        src: ".tmp/nginx.conf"
+        dest: /etc/nginx/sites-enabled/default
+      notify:
+        - restart nginx
+        - Run a user service for nexus
+
+  handlers:
+    - name: restart nginx
+      service: 
+        name: nginx
+        state: restarted
+        
     - name: Run a user service for nexus
       systemd:
         name: nexus

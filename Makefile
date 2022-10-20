@@ -1,6 +1,8 @@
 include .env
 export
 
+instance_id=$(shell cd terraform && terraform output --json nexus-id)
+
 DELAY=10
 
 RED:=\033[0;31m
@@ -25,9 +27,11 @@ ansible-init:
 	@mkdir ansible/.tmp
 	@cp config/ansible.ini ansible/.tmp/inventory.ini
 	@cd terraform && terraform output --json nexus-ip | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' >> ../ansible/.tmp/inventory.ini
+	@cd terraform && terraform output --json nexus-details > ../ansible/.tmp/instances.tmp
 
 ansible-exec:
 	@echo "${ORANGE}Executing scripts on remote machines${NOCOLOR}"
+	ansible-playbook ansible/nginx.yml
 	ansible-playbook -i ansible/.tmp/inventory.ini ansible/playbook.yml
 
 ansible-destroy:
@@ -64,3 +68,15 @@ provisioned:
 
 destroyed:
 	@echo "${RED}Completely destroyed${NOCOLOR}"
+
+start:
+	@echo "${ORANGE}Starting nexus instance${NOCOLOR}"
+	@aws ec2 start-instances --instance-ids $(instance_id)
+	@aws ec2 wait instance-running --instance-ids $(instance_id)
+	@echo "${GREEN}Started nexus instance${NOCOLOR}"
+
+stop:
+	@echo "${ORANGE}Stopping nexus instance${NOCOLOR}"
+	@aws ec2 stop-instances --instance-ids $(instance_id)
+	@aws ec2 wait instance-stopped --instance-ids $(instance_id)
+	@echo "${RED}Stopped nexus instance${NOCOLOR}"

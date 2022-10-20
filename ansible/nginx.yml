@@ -1,0 +1,12 @@
+---
+- name: Create nginx configuration files for each environments
+  hosts: localhost
+  vars:
+    host: "{{ lookup('file', '.tmp/instances.tmp') }}"
+  tasks:
+    - name: "Creating configuration for the environment"
+      template:
+        src: "../config/nginx.conf.j2"
+        dest: ".tmp/nginx.conf"
+      vars:
+        ip: "{{ host.private_ip }}"

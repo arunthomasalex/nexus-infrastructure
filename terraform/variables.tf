@@ -2,6 +2,11 @@ variable "props" {
   type = map(any)
 }
 
+variable "availability_zone" {
+  type = string
+  description = "Set availability zone"
+}
+
 variable "enable_dns_support" {
   type = bool
   description = "Enable or disable dns support"

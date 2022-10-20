@@ -4,6 +4,7 @@ provider "aws" {
 
 resource "aws_instance" "nexus" {
   ami = lookup(var.props, "ami")
+  availability_zone = var.availability_zone
   instance_type = lookup(var.props, "type")
   associate_public_ip_address = lookup(var.props, "enable_ip")
   key_name = aws_key_pair.key_pair.key_name
@@ -13,13 +14,14 @@ resource "aws_instance" "nexus" {
     Environment = var.env
     Type = var.name_tag
   }
-  root_block_device {
-    delete_on_termination = true
-    volume_size = 10
-    volume_type = "gp2"
-  }
   subnet_id = aws_subnet.nexus.id
   vpc_security_group_ids = [ aws_security_group.nexus.id ]
+}
+
+resource "aws_volume_attachment" "nexus" {
+  device_name = "/dev/sdh"
+  volume_id = data.aws_ebs_volume.nexus.id
+  instance_id = aws_instance.nexus.id
 }
 
 resource "aws_key_pair" "key_pair" {
@@ -38,6 +40,7 @@ resource "aws_vpc" "nexus" {
 
 #subnet for the instances
 resource "aws_subnet" "nexus" {
+  availability_zone = var.availability_zone
   vpc_id = aws_vpc.nexus.id
   cidr_block = var.subnet_cidr_block
   tags = {
@@ -59,6 +62,14 @@ resource "aws_security_group" "nexus" {
       protocol = "tcp"
       cidr_blocks = [var.default_cidr_block]
     }
+  }
+
+  ingress {
+    protocol    = "tcp"
+    cidr_blocks = ["127.0.0.1/32"]
+    description = "Application ports"
+    from_port   = "8081"
+    to_port     = "8081"
   }
 
   egress {
