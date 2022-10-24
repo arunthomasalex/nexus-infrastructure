@@ -1,7 +1,7 @@
 include .env
 export
 
--instance_id=$(shell cd terraform && terraform output --json nexus-id)
+instance_id=$(shell cd terraform && terraform output --json nexus-id)
 
 DELAY=10
 
@@ -70,9 +70,11 @@ destroyed:
 	@echo "${RED}Completely destroyed${NOCOLOR}"
 
 start:
-	@echo "${ORANGE}Starting nexus instance${NOCOLOR}"
+	@echo "${ORANGE}Starting nexus instance${NOCOLOR} $(instance_id)"
 	@aws ec2 start-instances --instance-ids $(instance_id)
 	@aws ec2 wait instance-running --instance-ids $(instance_id)
+	@echo Nexus IP
+	@aws ec2 describe-instances --instance-ids $(instance_id) --query=Reservations[].Instances[].PublicIpAddress --region ap-south-1
 	@echo "${GREEN}Started nexus instance${NOCOLOR}"
 
 stop:
