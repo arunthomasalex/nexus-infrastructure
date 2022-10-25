@@ -76,6 +76,27 @@
         owner: "{{ user }}"
         group: "{{ group }}"
 
+    - name: Create folder to attach to external volume
+      file:
+        path: /mnt/nexus/repo
+        state: directory
+        recurse: yes
+
+    - name: Attach external volume to folder
+      mount:
+        path: /mnt/nexus/repo
+        src: /dev/nvme1n1
+        state: mounted
+        fstype: xfs
+
+    - name: Change user privilage for the mounted folder
+      file:
+        path: /mnt/nexus/repo
+        state: directory
+        recurse: yes
+        owner: "{{ user }}"
+        group: "{{ group }}"
+
     - name: Add user for nexus in nexus.rc file
       copy:
         content: 'run_as_user="{{ user }}"'
@@ -119,6 +140,21 @@
       notify:
         - restart nginx
         - Run a user service for nexus
+
+    - name: Check if a get request is received
+      shell: sudo tcpdump -i ens5 -s 0 -A 'tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x47455420' &
+
+    # - name: Copy shutdown job to instance
+    #   copy:
+    #     src: ".tmp/checkandshutdown.sh"
+    #     dest: /home/{{ ansible_ssh_user }}/checkandshutdown.sh
+
+    # - name: Schedule job shutdown instance
+    #   cron:
+    #     name: "shutdownjob"
+    #     state: present
+    #     minute: "30"
+    #     job: '/bin/sh /home/{{ ansible_ssh_user }}/checkandshutdown.sh'
 
   handlers:
     - name: restart nginx

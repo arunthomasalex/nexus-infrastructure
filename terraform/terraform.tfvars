@@ -5,7 +5,6 @@ props = {
   enable_ip = true
   name      = "nexus"
 }
-availability_zone = "ap-south-1c"
 enable_dns_support = true
 env                = "dev"
 key_name           = "nexus"

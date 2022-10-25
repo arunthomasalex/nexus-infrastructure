@@ -26,6 +26,7 @@ ansible-init:
 	@echo "${ORANGE}Creating ansible tmp files${NOCOLOR}"
 	@mkdir ansible/.tmp
 	@cp config/ansible.ini ansible/.tmp/inventory.ini
+	@cp config/checkandshutdown.sh ansible/.tmp/
 	@cd terraform && terraform output --json nexus-ip | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' >> ../ansible/.tmp/inventory.ini
 	@cd terraform && terraform output --json nexus-details > ../ansible/.tmp/instances.tmp
 

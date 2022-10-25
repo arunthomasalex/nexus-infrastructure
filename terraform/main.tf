@@ -4,7 +4,7 @@ provider "aws" {
 
 resource "aws_instance" "nexus" {
   ami = lookup(var.props, "ami")
-  availability_zone = var.availability_zone
+  availability_zone = data.aws_ebs_volume.nexus.availability_zone
   instance_type = lookup(var.props, "type")
   associate_public_ip_address = lookup(var.props, "enable_ip")
   key_name = aws_key_pair.key_pair.key_name
@@ -40,7 +40,7 @@ resource "aws_vpc" "nexus" {
 
 #subnet for the instances
 resource "aws_subnet" "nexus" {
-  availability_zone = var.availability_zone
+  availability_zone = data.aws_ebs_volume.nexus.availability_zone
   vpc_id = aws_vpc.nexus.id
   cidr_block = var.subnet_cidr_block
   tags = {
